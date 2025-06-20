@@ -111,7 +111,7 @@ graph TD
 ### セットアップ
 1. **リポジトリのクローン**
    ```bash
-   git clone https://github.com/shark-bot-0118/web-dev-mcp-server/edit/main/README.md
+   git clone https://github.com/shark-bot-0118/web-dev-mcp-server
    cd web_development_agent
    ```
 
