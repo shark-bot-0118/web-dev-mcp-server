@@ -1,0 +1,25 @@
+# MCP Server Framework
+mcp-server
+
+# AI/LLM Libraries
+openai
+google-generativeai
+langchain-google-genai
+langchain-community
+pydantic
+
+# AWS Services
+boto3
+
+# Web/HTTP Libraries
+httpx
+requests
+
+# Template Engine
+jinja2
+
+# Configuration Management
+python-dotenv
+
+# Workflow Management
+langgraph
