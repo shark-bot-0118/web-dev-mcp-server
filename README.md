@@ -137,7 +137,7 @@ graph TD
    
    # オプション設定
    OUTPUT_DIR=static_site_output
-   TEMPLATE_DIR=templates
+   MAX_CONCURRENCY=3
    LOG_FILE=app.log
    ```
 
