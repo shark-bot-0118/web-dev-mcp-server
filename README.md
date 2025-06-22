@@ -193,8 +193,6 @@ web_development_agent/
 │   └── setup_nextjs_project.py # Next.jsプロジェクトセットアップ
 ├── templates/                   # HTMLテンプレート
 ├── static_site_output/          # 生成されたプロジェクト
-├── sample_page/                 # サンプルページ
-├── test/                        # テストスイート
 ├── config.py                    # 設定管理
 ├── logger.py                    # ロギングシステム
 └── main.py                      # MCPサーバーエントリーポイント
@@ -251,8 +249,8 @@ static_site_output/
 | `AWS_SECRET_ACCESS_KEY` | AWS シークレットキー（S3デプロイ用） | オプション |
 | `AWS_DEFAULT_REGION` | AWS リージョン | `ap-northeast-1` |
 | `OUTPUT_DIR` | 生成プロジェクトディレクトリ | `static_site_output` |
-| `TEMPLATE_DIR` | テンプレートディレクトリ | `templates` |
-| `LOG_FILE` | ログファイル場所 | `app.log` |
+| `MAX_CONCURRENCY` | ページ生成処理並列実行数 | `3` | # 値が大きすぎるとGeminiのレート制限にかかる可能性があります
+| `LOG_FILE` | ログファイル名 | `app.log` |
 
 ### ロギング
 設定可能レベルの包括的ロギングシステム：
