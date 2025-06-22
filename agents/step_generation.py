@@ -362,7 +362,7 @@ class StepGenerationAgent:
             logger.info("[StepGenerationAgent] Starting pages quality control with parallel processing")
             
             # レート制限回避のため、並列度を制限
-            max_workers = min(3, len(pages))  # 最大3並列でGemini APIを叩く
+            max_workers = min(Config.MAX_CONCURRENCY, len(pages))  # 最大3並列でGemini APIを叩く
             logger.info(f"[StepGenerationAgent] *** PARALLEL PROCESSING MODE *** Using {max_workers} parallel workers for {len(pages)} pages")
             logger.info(f"[StepGenerationAgent] *** FAIL-FAST MODE *** Any single page failure will terminate the entire workflow")
             
