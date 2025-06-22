@@ -193,7 +193,7 @@ user_instruction = "技術系企業のコーポレートサイトを作成して
 ### Webサイトの修正とデプロイ
 
 #### コンテンツの修正
-生成されたWebサイトは`static_site_output/nextjs_site_[random_id]/`に保存されます(デフォルト)。
+生成されたWebサイトは`static_site_output/nextjs_site_[random_id]/`に保存されます(デフォルト)。  
 以下の作業が必要です：
 
 1. **テキストコンテンツ**: 各ページの文言をビジネス要件に合わせて修正
