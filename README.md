@@ -263,13 +263,12 @@ static_site_output/
 ## 🧪 テスト
 
 ```bash
-# 全テスト実行
-python test/run_all_tests.py
+# Webアプリ生成テスト用スクリプト
+python test/test_generate.py
 
-# 個別テスト実行
-python -m pytest test/test_build_agent.py
-python -m pytest test/test_s3_deploy_agent.py
-python -m pytest test/test_main_tools.py
+# ページを生成した後に実行
+# 生成したWebアプリの公開実施テスト
+python test/test_s3_workflow.py
 ```
 
 ## 🐛 トラブルシューティング
