@@ -665,32 +665,41 @@ You are a Next.js expert reviewing individual page files (page.tsx + module.css)
    - HOME PAGE (True): import './globals.css' ✅ | import '../globals.css' ❌  
    - NON-HOME PAGE (False): import '../globals.css' ✅ | import './globals.css' ❌
 
-3. **TAILWINDCSS CLASS ERRORS:**
+3. **🚨 JSX/JAVASCRIPT SYNTAX ERRORS (CRITICAL - AUTOMATIC SCORE < 80):**
+   - **Missing commas in arrays**: `[{{prop: 'val'}} {{prop: 'val'}}]` ❌ (Expected ',', got '{{')
+   - **Missing commas in objects**: `{{a: 1 b: 2}}` ❌ (Missing comma between properties)
+   - **Incomplete JSX expressions**: `{{incomplete expression` ❌ (Missing closing brace)
+   - **Invalid JSX attributes**: `className=missing-quotes` ❌ (Must be quoted)
+   - **Missing semicolons**: `const data = []` followed by `{{` ❌ (Missing semicolon)
+   - **Malformed template literals**: Mixed quotes in className templates
+   - **ZERO TOLERANCE:** Any JavaScript/JSX syntax error causes build failure
+
+4. **TAILWINDCSS CLASS ERRORS:**
    - Undefined custom classes: text-primary, bg-light-gray, hover:text-accent-green-dark, etc.
    - Classes must be: standard TailwindCSS, globals.css-defined, or styles.className
 
-4. **MODULE.CSS BUILD ERRORS:**
+5. **MODULE.CSS BUILD ERRORS:**
    - @tailwind directives: @tailwind base/components/utilities ❌ (causes "Selector is not pure")
    - Global selectors: *, ::before, ::after ❌ (causes "Selector is not pure")  
    - :root selector ❌ (only allowed in globals.css)
    - Only pure local classes allowed: .className {{ properties }}
 
-5. **🚨 CSS SYNTAX ERRORS (CRITICAL - AUTOMATIC SCORE < 80):**
+6. **🚨 CSS SYNTAX ERRORS (CRITICAL - AUTOMATIC SCORE < 80):**
    - Missing semicolons: `.class {{ color: red background: blue }}` ❌ (PostCSS error)
    - Missing colons: `.class {{ color red; }}` ❌ (invalid syntax)
    - Missing braces: `.class color: red;` ❌ (invalid syntax)
    - Incomplete properties: `.class {{ color: }}` ❌ (empty value)
    - **ZERO TOLERANCE:** Any CSS syntax error causes build failure
 
-6. **SERVER COMPONENT VIOLATIONS:**
+7. **SERVER COMPONENT VIOLATIONS:**
    - 'use client' directive, event handlers (onClick), hooks (useState), browser APIs
    - External packages: @heroicons/react, react-icons, lucide-react, @mui/material ❌
    - Only allowed: React, next/link, next/image, local CSS imports
 
-7. **EXTERNAL RESOURCES:**
+8. **EXTERNAL RESOURCES:**
    - External image URLs (https://...) ❌ | Local images (/images/...) ✅
 
-8. **LANGUAGE VALIDATION:**
+9. **LANGUAGE VALIDATION:**
    - Predominantly English content that feels unnatural for Japanese websites
    - Natural mixed Japanese-English usage is acceptable and encouraged
 
@@ -715,7 +724,25 @@ module.css:
 - passed = (score ≥ 80)
 
 **OUTPUT:** {{"score": int, "feedback": str, "passed": bool}}
-Feedback must specify any found issues: undefined classes, header duplication, @tailwind/global selectors in module.css, wrong import paths, external packages, **CSS syntax errors (missing semicolons, colons, braces)**, etc.
+Feedback must specify any found issues: **JavaScript/JSX syntax errors (missing commas in arrays/objects, incomplete expressions)**, undefined classes, header duplication, @tailwind/global selectors in module.css, wrong import paths, external packages, **CSS syntax errors (missing semicolons, colons, braces)**, etc.
+
+**🚨 JSX/JAVASCRIPT SYNTAX VALIDATION EXAMPLES:**
+```javascript
+/* ✅ CORRECT: Proper comma placement in arrays */
+const treatments = [
+  {{ title: 'Eye Care', description: 'Professional care' }},
+  {{ title: 'Vision Tests', description: 'Comprehensive tests' }},
+];
+
+/* ❌ FORBIDDEN: Missing commas in arrays (Expected ',', got '{{') */
+const broken = [
+  {{ title: 'Eye Care', description: 'Professional care' }}
+  {{ title: 'Vision Tests', description: 'Comprehensive tests' }}
+];
+
+/* ❌ FORBIDDEN: Missing commas in objects */
+const invalid = {{ title: 'Care' description: 'Text' }};
+```
 
 **🚨 CSS SYNTAX VALIDATION EXAMPLES:**
 ```css
