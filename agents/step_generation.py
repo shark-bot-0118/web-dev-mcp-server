@@ -8,14 +8,34 @@ from config import Config
 from logger import Logger
 from typing import List, Dict
 from pydantic import BaseModel
-from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
-from langchain_community.chat_models import ChatOpenAI
 from concurrent.futures import ThreadPoolExecutor, wait, as_completed
-from agents.page_development import generate_layout, generate_tailwind_css, develop_page, write_file, LayoutCache
+from agents.page_development import generate_layout, generate_tailwind_css, develop_page, LayoutCache
 from agents.review_page import review_develop_page, review_layout_files
 
 load_dotenv()
 logger = Logger(log_file=Config.LOG_FILE)
+
+def write_file(file_path: str, content: str) -> None:
+    """
+    ファイルにコンテンツを書き込む関数
+    
+    Args:
+        file_path (str): 書き込み先のファイルパス
+        content (str): 書き込むコンテンツ
+    """
+    try:
+        # ディレクトリが存在しない場合は作成
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # ファイルに書き込み
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            
+        logger.info(f"[write_file] Successfully wrote file: {file_path}")
+        
+    except Exception as e:
+        logger.error(f"[write_file] Failed to write file {file_path}: {str(e)}")
+        raise e
 
 class QualityControlException(Exception):
     """品質制御で致命的な問題が発生した場合の例外"""
