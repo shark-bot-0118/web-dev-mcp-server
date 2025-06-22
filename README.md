@@ -249,8 +249,9 @@ static_site_output/
 | `AWS_SECRET_ACCESS_KEY` | AWS シークレットキー（S3デプロイ用） | オプション |
 | `AWS_DEFAULT_REGION` | AWS リージョン | `ap-northeast-1` |
 | `OUTPUT_DIR` | 生成プロジェクトディレクトリ | `static_site_output` |
-| `MAX_CONCURRENCY` | ページ生成処理並列実行数 | `3` | # 値が大きすぎるとGeminiのレート制限にかかる可能性があります
+| `MAX_CONCURRENCY` | ページ生成処理並列実行数 | `3` |
 | `LOG_FILE` | ログファイル名 | `app.log` |
+# ⚠️MAX_CONCURRENCYの値が大きすぎるとGeminiのレート制限にかかる可能性があります
 
 ### ロギング
 設定可能レベルの包括的ロギングシステム：
