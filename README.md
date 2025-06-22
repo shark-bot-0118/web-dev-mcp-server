@@ -111,8 +111,8 @@ graph TD
 ### セットアップ
 1. **リポジトリのクローン**
    ```bash
-   git clone https://github.com/shark-bot-0118/web-dev-mcp-server
-   cd web-dev-mcp-server
+   git clone <repository-url>
+   cd web_development_agent
    ```
 
 2. **Python依存関係のインストール**
