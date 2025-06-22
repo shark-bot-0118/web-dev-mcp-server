@@ -6,7 +6,6 @@ load_dotenv()
 class Config:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     OUTPUT_DIR = os.getenv("OUTPUT_DIR", "static_site_output")
-    TEMPLATE_DIR = os.getenv("TEMPLATE_DIR", "templates")
     LOG_FILE = os.getenv("LOG_FILE", "app.log")
     
     # AWS Configuration
@@ -20,6 +19,9 @@ class Config:
         'ErrorDocument': {'Key': 'error.html'}
     }
     
+    # 
+    MAX_CONCURRENCY = int(os.getenv("MAX_CONCURRENCY", "3"))
+
     # S3 Bucket Policy Template (セキュアなパブリック読み取り専用)
     @staticmethod
     def get_s3_bucket_policy(bucket_name: str) -> dict:
