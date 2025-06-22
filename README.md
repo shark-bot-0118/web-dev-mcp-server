@@ -1,7 +1,7 @@
 # Web Development Agent
 
 自然言語指示から静的Webサイトを自動生成するMCPサーバーです。Next.jsベースのWebサイトを生成し、S3への自動デプロイ&WEBサイト公開も可能です。
-本MPCサーバーはCursorをはじめとしたAIエディタからの実行を想定しています。
+本MPCサーバーはCursor、Windsurf、Cline、RooをはじめとしたAIエディタからの実行を想定しています。
 
 ## 🚀 概要
 
