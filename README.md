@@ -251,6 +251,7 @@ static_site_output/
 | `OUTPUT_DIR` | 生成プロジェクトディレクトリ | `static_site_output` |
 | `MAX_CONCURRENCY` | ページ生成処理並列実行数 | `3` |
 | `LOG_FILE` | ログファイル名 | `app.log` |
+
 ⚠️MAX_CONCURRENCYの値が大きすぎるとGeminiのレート制限にかかる可能性があります
 
 ### ロギング
