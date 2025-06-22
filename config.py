@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     OUTPUT_DIR = os.getenv("OUTPUT_DIR", "static_site_output")
     TEMPLATE_DIR = os.getenv("TEMPLATE_DIR", "templates")
