@@ -112,7 +112,7 @@ graph TD
 1. **リポジトリのクローン**
    ```bash
    git clone <repository-url>
-   cd web_development_agent
+   cd eb-dev-mcp-server
    ```
 
 2. **Python依存関係のインストール**
