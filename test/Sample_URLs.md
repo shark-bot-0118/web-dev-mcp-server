@@ -50,3 +50,28 @@ http://website-2bf96243-20250622172946.s3-website-ap-northeast-1.amazonaws.com/
 個人作家のホームページを作成したい。ホームページにはアトリエの紹介を載せ、アクセスした人が惹きつけられるような芸術的なイメージのページを作成してほしい。webページ全体として抽象的で動きのあるページにしてほしい。ホームページの他には作品の紹介ができるページと、紹介ページから販売ページに遷移するようにしてほしい。また、Youtubeチャンネルを持っているのでYoutubeチャンネルのリンクを載せるページも作成してください。追加でアトリエのイベントを載せるページとコンタクトページを作成してください。
 ```
 
+プロンプト
+```
+user_instruction: Create a 4-page portfolio website with a "Cyberpunk Glitch Art" theme. The site should have a dark background (#121212) with neon pink (#FF00FF), cyan (#00FFFF), and electric blue (#7DF9FF) accents. Use distorted typography (e.g., glitch font like 'Digital-7') and holographic textures throughout.
+
+**Home Page:**
+*   Hero Section: Animated intro sequence – a distorted logo reveal with a glitch effect, transitioning to the navigation menu. Navigation links should have subtle hover animations.
+*   Featured Projects: Interactive grid layout where projects "glitch" into view on hover, revealing a short description and link.
+
+**About Page:**
+*   Animated timeline showcasing career progression using glitch effects for transitions between milestones. Each milestone should appear with a brief animation.
+*   Skills/Expertise: Visual representation of skills with animated holographic icons that pulse gently.
+*   Interactive "bio" section where text fragments appear and disappear in a glitchy pattern, triggered by mouse hover.
+
+**Projects Page:**
+*   Full project showcase – detailed descriptions, high-resolution images/videos for each project. Implement filtering options by category (e.g., graphic design, web development).
+*   Each project should have a dedicated section with parallax scrolling effect when the user scrolls down.
+*   Project thumbnails should animate on hover (e.g., zoom in slightly or display a short animation).
+
+**Contact Page:**
+*   Animated contact form with futuristic design elements – input fields should glow subtly and have animated borders.
+*   Interactive map showing location (optional).
+*   Social media links with animated icons that pulse gently.
+
+The website should be responsive and look good on all devices. Prioritize clean code and optimized performance.
+```
