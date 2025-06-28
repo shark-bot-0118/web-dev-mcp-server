@@ -51,7 +51,7 @@ http://website-2bf96243-20250622172946.s3-website-ap-northeast-1.amazonaws.com/
 ```
 
 ***<サイバーパンク>***  
-ローカルLLMにプロンプトは作成してもらいました
+ローカルLLMが自由に作成したプロンプトを使用しています
 
 URL
 ```
