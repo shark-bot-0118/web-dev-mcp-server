@@ -59,6 +59,7 @@ http://website-daecd090-20250628135655.s3-website-ap-northeast-1.amazonaws.com/
 ```
 
 プロンプト
+```
 """
 user_instruction: Create a 4-page portfolio website with a "Cyberpunk Glitch Art" theme. The site should have a dark background (#121212) with neon pink (#FF00FF), cyan (#00FFFF), and electric blue (#7DF9FF) accents. Use distorted typography (e.g., glitch font like 'Digital-7') and holographic textures throughout.
 
@@ -82,7 +83,5 @@ user_instruction: Create a 4-page portfolio website with a "Cyberpunk Glitch Art
 *   Social media links with animated icons that pulse gently.
 
 The website should be responsive and look good on all devices. Prioritize clean code and optimized performance.
-"""```
-
+"""
 ```
-
