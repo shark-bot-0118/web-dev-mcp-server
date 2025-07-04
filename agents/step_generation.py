@@ -99,9 +99,7 @@ class StepGenerationAgent:
         overall_design = requirements.get("overall_design", "")
         pages = requirements.get("pages", [])
         sitemap = requirements.get("siteMap", [])
-        logger.info(f"[StepGenerationAgent] overall_design: {overall_design}")
-        logger.info(f"[StepGenerationAgent] pages: {pages}")
-        logger.info(f"[StepGenerationAgent] sitemap: {sitemap}")
+        logger.info(f"[StepGeneration] Starting generation for {len(pages)} pages")
 
         steps = []
         all_required_libs = set()
@@ -110,16 +108,16 @@ class StepGenerationAgent:
         # 2. Layout品質重視フロー  
         def generate_layout_with_quality_control():
             """Layout品質重視フロー：生成 -> レビュー -> リトライ（最大3回）"""
-            max_attempts = 3
+            max_attempts = Config.MAX_ATTEMPTS
             for attempt in range(max_attempts):
                 try:
-                    logger.info(f"[generate_layout_with_quality_control] Attempt {attempt + 1}/{max_attempts} for layout")
+                    if attempt > 0:
+                        logger.info(f"[StepGeneration] Layout retry {attempt + 1}/{max_attempts}")
                     
                     # Layout生成
                     layout_result = generate_layout(overall_design, sitemap, project_name)
                     
                     if not isinstance(layout_result, dict) or not layout_result.get('layout') or not layout_result.get('globals_css'):
-                        logger.error(f"[generate_layout_with_quality_control] Layout generation failed attempt {attempt + 1}: {layout_result}")
                         if attempt == max_attempts - 1:
                             raise QualityControlException(
                                 f"Layout generation failed after {max_attempts} attempts", 
@@ -129,7 +127,6 @@ class StepGenerationAgent:
                         continue
                     
                     # レビュー実行
-                    logger.info(f"[generate_layout_with_quality_control] Starting layout review attempt {attempt + 1}")
                     review_result = review_layout_files(
                         layout_result['layout']['code'],
                         layout_result['globals_css']['code'],
@@ -140,11 +137,10 @@ class StepGenerationAgent:
                     )
                     
                     review_score = review_result.get('score', 0)
-                    logger.info(f"[generate_layout_with_quality_control] Layout review score attempt {attempt + 1}: {review_score}")
                     
                     if review_score >= 80:
                         # 品質基準クリア
-                        logger.info(f"[generate_layout_with_quality_control] Layout quality passed! Score: {review_score}")
+                        logger.info(f"[StepGeneration] Layout approved (score: {review_score})")
                         
                         # ファイル書き込み処理を実行
                         if layout_result.get('layout') and layout_result.get('globals_css'):
@@ -156,29 +152,21 @@ class StepGenerationAgent:
                                 layout_path = os.path.join(project_path, "layout.tsx")
                                 css_path = os.path.join(project_path, "globals.css")
                                 
-                                logger.info(f"[generate_layout_with_quality_control] *** WRITING LAYOUT FILES ***")
-                                
                                 # layout.tsx書き込み
                                 write_file(layout_path, layout_result['layout']['code'])
-                                logger.info(f"[generate_layout_with_quality_control] layout.tsx written successfully")
                                 
                                 # LayoutCacheにセット
                                 LayoutCache.set(layout_result['layout']['code'])
-                                logger.info(f"[generate_layout_with_quality_control] LayoutCache updated")
                                 
                                 # globals.css書き込み（既存ファイルがあれば削除）
                                 if os.path.exists(css_path):
                                     os.remove(css_path)
                                 write_file(css_path, layout_result['globals_css']['code'])
-                                logger.info(f"[generate_layout_with_quality_control] globals.css written successfully")
-                                
-                                logger.info(f"[generate_layout_with_quality_control] *** LAYOUT FILES WRITTEN SUCCESSFULLY ***")
                                 
                             except Exception as write_error:
-                                logger.error(f"[generate_layout_with_quality_control] *** LAYOUT FILE WRITE ERROR ***: {write_error}")
-                                logger.error(f"[generate_layout_with_quality_control] Write error details: {type(write_error).__name__}: {str(write_error)}")
+                                logger.error(f"[StepGeneration] Layout file write error: {write_error}")
                         else:
-                            logger.warning(f"[generate_layout_with_quality_control] Cannot write layout files - missing layout or globals_css data")
+                            logger.error(f"[StepGeneration] Cannot write layout files - missing data")
                         
                         layout_result['review'] = review_result
                         # globals.css内容を後続処理用に保存
@@ -187,7 +175,6 @@ class StepGenerationAgent:
                         return layout_result
                     else:
                         # 品質基準未達
-                        logger.warning(f"[generate_layout_with_quality_control] Layout quality failed attempt {attempt + 1}: score={review_score}")
                         if attempt == max_attempts - 1:
                             raise QualityControlException(
                                 f"Layout quality check failed after {max_attempts} attempts (final score: {review_score})", 
@@ -200,7 +187,7 @@ class StepGenerationAgent:
                     # QualityControlExceptionは再発生
                     raise
                 except Exception as e:
-                    logger.error(f"[generate_layout_with_quality_control] Exception attempt {attempt + 1}: {e}")
+                    logger.error(f"[StepGeneration] Layout generation exception: {e}")
                     if attempt == max_attempts - 1:
                         raise QualityControlException(
                             f"Layout generation exception after {max_attempts} attempts: {str(e)}", 
@@ -218,19 +205,19 @@ class StepGenerationAgent:
         # 3. 各ページ品質重視フロー（既存）
         def develop_page_with_quality_control(overall_design, page, sitemap, globals_css_content, project_name):
             """品質重視フロー：develop_page -> review -> retry(最大3回) -> 品質確保後にファイル書き込み"""
-            max_attempts = 3
+            max_attempts = Config.MAX_ATTEMPTS
             page_name = page.get('name', 'unknown')
             slug = page.get('slug', '')
             
             for attempt in range(max_attempts):
                 try:
-                    logger.info(f"[develop_page_with_quality_control] Attempt {attempt + 1}/{max_attempts} for page: {page_name}")
+                    if attempt > 0:
+                        logger.info(f"[StepGeneration] Page '{page_name}' retry {attempt + 1}/{max_attempts}")
                     
                     # develop_page実行
                     page_result = develop_page(overall_design, page, sitemap, globals_css_content, project_name)
                     
                     if not isinstance(page_result, dict) or not page_result.get("page") or not page_result.get("module_css"):
-                        logger.error(f"[develop_page_with_quality_control] develop_page failed for {page_name} attempt {attempt + 1}: {page_result}")
                         if attempt == max_attempts - 1:  # 最後の試行
                             raise QualityControlException(
                                 f"develop_page failed for {page_name} after {max_attempts} attempts", 
@@ -240,7 +227,6 @@ class StepGenerationAgent:
                         continue
 
                     # レビュー実行
-                    logger.info(f"[develop_page_with_quality_control] Starting review for {page_name} attempt {attempt + 1}")
                     review_result = review_develop_page(
                         page_result["page"]["code"],
                         page_result["module_css"]["code"],
@@ -253,23 +239,18 @@ class StepGenerationAgent:
                         }
                     )
                 
-                    # review_resultの型チェックとデバッグログ
-                    logger.debug(f"[develop_page_with_quality_control] Review result type: {type(review_result)}, value: {review_result}")
-                    
                     # review_resultが辞書でない場合の対応
                     if not isinstance(review_result, dict):
-                        logger.error(f"[develop_page_with_quality_control] Invalid review_result type for {page_name}: expected dict, got {type(review_result)}")
-                        logger.error(f"[develop_page_with_quality_control] Review result content: {review_result}")
+                        logger.error(f"[StepGeneration] Invalid review_result type for {page_name}")
                         # デフォルト値で対応
                         review_result = {"score": 0, "feedback": f"Review failed - invalid result type: {review_result}", "passed": False}
                     
                     review_score = review_result.get('score', 0)
-                    logger.info(f"[develop_page_with_quality_control] Review score for {page_name} attempt {attempt + 1}: {review_score}")
                     
                     # スコア判定
                     if review_score >= 80:
                         # 品質基準クリア - ファイル書き込みが必要かチェック
-                        logger.info(f"[develop_page_with_quality_control] Quality passed with score {review_score} for {page_name}!")
+                        logger.info(f"[StepGeneration] Page '{page_name}' approved (score: {review_score})")
                         
                         # develop_page内でファイル書き込みが失敗した可能性があるため、ここで確実に書き込む
                         if page_result.get("page") and page_result.get("module_css"):
@@ -284,35 +265,27 @@ class StepGenerationAgent:
                                     # homeページはルートに配置
                                     page_path = os.path.join(project_path, "page.tsx")
                                     css_path = os.path.join(project_path, "home.module.css")
-                                    logger.info(f"[develop_page_with_quality_control] HOME PAGE PATHS - page: {page_path}, css: {css_path}")
                                 else:
                                     # 他のページは slug ディレクトリに配置
                                     slug = page.get('slug', '')
                                     page_dir = os.path.join(project_path, slug)
                                     page_path = os.path.join(page_dir, "page.tsx")
                                     css_path = os.path.join(page_dir, f"{slug}.module.css")
-                                    logger.info(f"[develop_page_with_quality_control] NON-HOME PAGE PATHS - page: {page_path}, css: {css_path}")
                                 
                                 # ファイル書き込み実行
                                 write_file(page_path, page_result["page"]["code"])
                                 write_file(css_path, page_result["module_css"]["code"])
-                                logger.info(f"[develop_page_with_quality_control] *** FILES WRITTEN SUCCESSFULLY *** for {page_name} (home: {is_home_page})")
                                 
                             except Exception as write_error:
-                                logger.error(f"[develop_page_with_quality_control] *** FILE WRITE ERROR *** for {page_name}: {write_error}")
-                                logger.error(f"[develop_page_with_quality_control] Write error details: {type(write_error).__name__}: {str(write_error)}")
+                                logger.error(f"[StepGeneration] File write error for {page_name}: {write_error}")
                         else:
-                            logger.warning(f"[develop_page_with_quality_control] Cannot write files for {page_name} - missing page or module_css data")
+                            logger.error(f"[StepGeneration] Cannot write files for {page_name} - missing data")
                         
-                        # レビュー結果を統合して成功を返す
-                        logger.info(f"[develop_page_with_quality_control] Page {page_name} completed successfully with score: {review_score}")
                         return page_result
                     else:
                         # 品質基準未達 -> リトライまたはエラー
-                        logger.warning(f"[develop_page_with_quality_control] Quality check failed for {page_name} attempt {attempt + 1}: score={review_score}")
-                        
                         if attempt == max_attempts - 1:  # 最後の試行
-                            logger.error(f"[develop_page_with_quality_control] Quality check failed after {max_attempts} attempts for {page_name}")
+                            logger.error(f"[StepGeneration] Quality check failed after {max_attempts} attempts for {page_name}")
                             raise QualityControlException(
                                 f"Quality check failed for {page_name} after {max_attempts} attempts (final score: {review_score})",
                                 component=f"page_{page_name}",
@@ -321,14 +294,13 @@ class StepGenerationAgent:
                         else:
                             # リトライのためにレビューフィードバックをpage_specに追加
                             page["review_feedback"] = review_result.get('feedback', 'Quality standards not met. Please improve the code.')
-                            logger.info(f"[develop_page_with_quality_control] Retrying {page_name} with feedback: {page['review_feedback']}")
                             continue
                     
                 except QualityControlException:
                     # QualityControlExceptionは再発生
                     raise
                 except Exception as e:
-                    logger.error(f"[develop_page_with_quality_control] Exception for {page_name} attempt {attempt + 1}: {e}")
+                    logger.error(f"[StepGeneration] Exception for {page_name}: {e}")
                     if attempt == max_attempts - 1:  # 最後の試行
                         raise QualityControlException(
                             f"Exception occurred for {page_name} after {max_attempts} attempts: {str(e)}",
@@ -346,28 +318,21 @@ class StepGenerationAgent:
 
         try:
             # 段階的品質重視フロー実行
-            logger.info("[StepGenerationAgent] Starting quality-controlled generation flow")
+            logger.info("[StepGeneration] Starting generation")
             
             # 1. Layout品質重視フロー実行
-            logger.info("[StepGenerationAgent] Starting layout quality control")
             layout_result = generate_layout_with_quality_control()
             steps.append(layout_result)
             
             # 2. TailwindCSS生成（品質チェック不要）
-            logger.info("[StepGenerationAgent] Generating TailwindCSS")
             tailwind_result = generate_tailwind_css(project_name)
             steps.append(tailwind_result)
             
             # 3. 各ページ（homeページ含む）品質重視フローを並列実行（1つ失敗で即座に停止）
-            logger.info("[StepGenerationAgent] Starting pages quality control with parallel processing")
+            logger.info(f"[StepGeneration] Processing {len(pages)} pages")
             
             # レート制限回避のため、並列度を制限
             max_workers = min(Config.MAX_CONCURRENCY, len(pages))  # 最大3並列でGemini APIを叩く
-            logger.info(f"[StepGenerationAgent] *** PARALLEL PROCESSING MODE *** Using {max_workers} parallel workers for {len(pages)} pages")
-            logger.info(f"[StepGenerationAgent] *** FAIL-FAST MODE *** Any single page failure will terminate the entire workflow")
-            
-            page_list = [p.get('name', 'unknown') for p in pages]
-            logger.info(f"[StepGenerationAgent] Pages to process: {', '.join(page_list)}")
             
             # 並列処理で一つでも失敗したら即座に停止する戦略
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -381,10 +346,8 @@ class StepGenerationAgent:
                     
                     future = executor.submit(develop_page_with_quality_control, overall_design, page, sitemap, globals_css_content, project_name)
                     futures[future] = page.get('name', 'unknown')
-                    logger.info(f"[StepGenerationAgent] Submitted page {page.get('name', 'unknown')} for processing")
                 
                 # as_completedを使って完了順に処理し、エラーが発生したら即座に停止
-                
                 completed_pages = []
                 for future in as_completed(futures):
                     page_name = futures[future]
@@ -394,41 +357,30 @@ class StepGenerationAgent:
                         if isinstance(page_result, dict) and "required_libs" in page_result and page_result["required_libs"]:
                             all_required_libs.update(page_result["required_libs"])
                         completed_pages.append(page_name)
-                        logger.info(f"[StepGenerationAgent] Page {page_name} completed successfully ({len(completed_pages)}/{len(pages)} pages done)")
                         
                     except QualityControlException as qce:
                         # ページ生成で品質制御に失敗した場合 - 即座にワークフロー停止
-                        logger.error(f"[StepGenerationAgent] *** IMMEDIATE WORKFLOW TERMINATION ***")
-                        logger.error(f"[StepGenerationAgent] Page {page_name} failed quality control after 3 attempts")
-                        logger.error(f"[StepGenerationAgent] Error details: {str(qce)}")
-                        logger.error(f"[StepGenerationAgent] Remaining {len(pages) - len(completed_pages) - 1} pages will be cancelled")
-                        logger.error(f"[StepGenerationAgent] Completed pages before failure: {completed_pages}")
+                        logger.error(f"[StepGeneration] Page '{page_name}' failed quality control")
                         
                         # 残りのタスクをキャンセル
                         for remaining_future in futures:
                             if remaining_future != future and not remaining_future.done():
                                 remaining_future.cancel()
-                                logger.info(f"[StepGenerationAgent] Cancelled task for page: {futures[remaining_future]}")
                         
                         # 即座にCriticalWorkflowErrorを発生
                         raise CriticalWorkflowError(
-                            f"Page generation failed: {page_name} failed quality control after 3 attempts. Error: {str(qce)}", 
+                            f"Page generation failed: {page_name} failed quality control after {Config.MAX_ATTEMPTS} attempts. Error: {str(qce)}", 
                             failed_component=f"page_{page_name}"
                         )
                         
                     except Exception as e:
                         # その他の予期しないエラー - 即座にワークフロー停止
-                        logger.error(f"[StepGenerationAgent] *** IMMEDIATE WORKFLOW TERMINATION ***")
-                        logger.error(f"[StepGenerationAgent] Page {page_name} encountered unexpected error")
-                        logger.error(f"[StepGenerationAgent] Error details: {str(e)}")
-                        logger.error(f"[StepGenerationAgent] Remaining {len(pages) - len(completed_pages) - 1} pages will be cancelled")
-                        logger.error(f"[StepGenerationAgent] Completed pages before failure: {completed_pages}")
+                        logger.error(f"[StepGeneration] Page '{page_name}' encountered unexpected error: {str(e)}")
                         
                         # 残りのタスクをキャンセル
                         for remaining_future in futures:
                             if remaining_future != future and not remaining_future.done():
                                 remaining_future.cancel()
-                                logger.info(f"[StepGenerationAgent] Cancelled task for page: {futures[remaining_future]}")
                         
                         # 即座にCriticalWorkflowErrorを発生
                         raise CriticalWorkflowError(
@@ -437,36 +389,27 @@ class StepGenerationAgent:
                         )
                 
                 # 全てのページが正常完了した場合
-                logger.info(f"[StepGenerationAgent] All {len(pages)} pages completed successfully!")
+                logger.info(f"[StepGeneration] All pages completed successfully")
 
         except QualityControlException as qce:
             # Index PageまたはLayoutの品質制御失敗 -> CriticalWorkflowErrorに変換
-            logger.error(f"[StepGenerationAgent] *** CRITICAL WORKFLOW ERROR *** Quality control failed during core component generation")
-            logger.error(f"[StepGenerationAgent] Failed component: {qce.component}")
-            logger.error(f"[StepGenerationAgent] Error details: {str(qce)}")
-            logger.error(f"[StepGenerationAgent] Workflow will be terminated")
+            logger.error(f"[StepGeneration] Core component generation failed")
             raise CriticalWorkflowError(
                 f"Core component generation failed: {str(qce)}", 
                 failed_component=qce.component
             )
         except CriticalWorkflowError as cwe:
             # CriticalWorkflowErrorは再発生してワークフロー全体を停止
-            logger.error(f"[StepGenerationAgent] *** CRITICAL WORKFLOW ERROR *** Workflow termination triggered")
-            logger.error(f"[StepGenerationAgent] Failed component: {cwe.failed_component}")
-            logger.error(f"[StepGenerationAgent] Error details: {str(cwe)}")
-            logger.error(f"[StepGenerationAgent] Workflow will be terminated immediately")
+            logger.error(f"[StepGeneration] Critical workflow error")
             raise
         except Exception as e:
-            logger.error(f"[StepGenerationAgent] *** UNEXPECTED CRITICAL ERROR *** Unhandled exception in quality control flow")
-            logger.error(f"[StepGenerationAgent] Exception type: {type(e).__name__}")
-            logger.error(f"[StepGenerationAgent] Exception details: {str(e)}")
-            logger.error(f"[StepGenerationAgent] Workflow will be terminated")
+            logger.error(f"[StepGeneration] Unexpected error: {type(e).__name__}")
             raise CriticalWorkflowError(
                 f"Unexpected critical error: {str(e)}", 
                 failed_component="workflow"
             )
         
-        logger.info(f"[StepGenerationAgent] Quality control flow completed. Total required_libs: {all_required_libs}")
+        logger.info(f"[StepGeneration] Generation completed successfully")
         return steps, list(all_required_libs)
 
 # 例外クラスをエクスポート（上位ワークフローでキャッチできるように）
