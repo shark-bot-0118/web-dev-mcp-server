@@ -143,6 +143,19 @@ You are a Next.js 13+ expert. Generate both a high-quality /app/layout.tsx and a
 - **Do NOT write <title> directly in JSX; use metadata export for site-wide defaults.**
 - **Use only Server Component features (no 'use client').**
 
+**CRITICAL JSX COMMENT AND STRING SYNTAX (BUILD FAILURE PREVENTION):**
+- **ABSOLUTELY FORBIDDEN**: HTML comments <!-- --> anywhere in JSX files
+- **CRITICAL**: Avoid // inside strings or text content (triggers react/jsx-no-comment-textnodes):
+  - `data-text="//text"` ❌ → `data-text="▸ text"` ✅
+  - `<h2>// Title</h2>` ❌ → `<h2>▸ Title</h2>` ✅
+  - Use alternative symbols: » « ∎ ▸ ▪ ◦ • instead of //
+- **CRITICAL**: Escape special characters in JSX text (prevents react/no-unescaped-entities):
+  - Single quotes: `don't` ❌ → `don&apos;t` or `don&#39;t` ✅
+  - Double quotes: `"text"` ❌ → `&quot;text&quot;` ✅  
+  - Ampersands: `A & B` ❌ → `A &amp; B` ✅
+  - Less than: `< 5` ❌ → `&lt; 5` ✅
+- **JSX comments must be wrapped in braces**: {{ /* comment */ }}
+
 **CRITICAL TAILWINDCSS CLASS VALIDATION (ZERO TOLERANCE):**
 **ABSOLUTELY FORBIDDEN CLASSES (WILL CAUSE BUILD ERRORS):**
 - **Height classes**: h-18 ❌ (use h-16, h-20, or h-[72px])
@@ -345,11 +358,7 @@ You MUST verify that EVERY issue mentioned in the review feedback is addressed:
 
 # Individual Page (app/[slug]/page.tsx + module.css) 生成用プロンプト
 DEVELOP_PAGE_PROMPT = """
-You are an expert Next.js developer and frontend architect specializing in React Server Components and modern web development. Your expertise includes TypeScript, TailwindCSS, module CSS, component architecture, and creating production-ready, accessible web applications.
-
-🚨 CRITICAL: Generate Next.js 13+ Server Component page for layout.tsx's <main>{{children}}</main>.
-🚫 NO <header>, <nav>, navigation - inherited from layout.tsx automatically.
-✅ START with <main> containing integrated content sections.
+You are an expert Next.js 13+ developer specializing in React Server Components. Generate production-ready page.tsx and module.css files for {slug} page.
 
 **Context:**
 - Design: {overall_design}
@@ -358,68 +367,62 @@ You are an expert Next.js developer and frontend architect specializing in React
 - Page: name={page_name}, slug={slug}, path={path}, is_home_page={is_home_page}
 - SiteMap: {sitemap}
 
-**🚨 CRITICAL MODULE CSS REQUIREMENTS (VIOLATION = BUILD FAILURE):**
-- **FORBIDDEN in module.css files:**
-  - `@tailwind base;` ❌ (causes "Selector is not pure" error)
-  - `@tailwind components;` ❌ (causes "Selector is not pure" error)  
-  - `@tailwind utilities;` ❌ (causes "Selector is not pure" error)
-  - `:root` selector ❌ (only allowed in globals.css)
-  - Global selectors like `*`, `::before`, `::after` ❌
-- **REQUIRED in module.css files:**
-  - ✅ Only local CSS classes: `.className {{ properties }}`
-  - ✅ Pure selectors with local scope
-  - ✅ No global imports or directives
+**CRITICAL REQUIREMENTS:**
 
-**🚨 CRITICAL CSS SYNTAX REQUIREMENTS (VIOLATION = BUILD FAILURE):**
-- **MANDATORY SEMICOLONS:** Every CSS property MUST end with semicolon (`;`)
-  - ✅ CORRECT: `.class {{ color: red; background: blue; }}`
-  - ❌ FORBIDDEN: `.class {{ color: red background: blue }}` (missing semicolons)
-  - ❌ FORBIDDEN: `.class {{ color: red; background: blue }}` (missing final semicolon)
-- **MANDATORY PROPERTY SYNTAX:** 
-  - ✅ CORRECT: `property: value;` (colon + space + semicolon)
-  - ❌ FORBIDDEN: `property:value` (missing spaces/semicolon)
-  - ❌ FORBIDDEN: `property value;` (missing colon)
-- **MANDATORY BRACE SYNTAX:**
-  - ✅ CORRECT: `.class {{ property: value; }}`
-  - ❌ FORBIDDEN: `.class property: value;` (missing braces)
-  - ❌ FORBIDDEN: `.class {{ property: value` (missing closing brace)
-- **VALIDATION CHECKLIST for module.css:**
-  - Every line with CSS property ends with semicolon
-  - Every CSS rule has opening and closing braces
-  - Every property has colon separator
-  - No trailing commas in CSS (unlike JavaScript)
-- **ZERO TOLERANCE:** Any syntax error will cause PostCSS build failure
+1. **PAGE STRUCTURE (MANDATORY)**
+   - NO <header>, <nav>, navigation elements (inherited from layout.tsx)
+   - START with <main> containing content sections only
+   - Page h1 must be WITHIN content sections with surrounding content
+   - Function name: HomePage, AboutPage, etc.
 
-**🚨 CRITICAL JSX REQUIREMENTS (VIOLATION = BUILD FAILURE):**
+2. **JSX SYNTAX (BUILD-BREAKING IF VIOLATED)**
+   - MANDATORY: import React from 'react'; (always include for JSX)
+   - Template literals: className={{`tailwind-class ${{styles.class}}`}} (backticks only)
+   - JSX comments only: {{ /* comment */ }} (NEVER HTML comments <!-- -->)
+   - **CRITICAL: AVOID // IN STRINGS** (triggers react/jsx-no-comment-textnodes):
+     - `data-text=\"//text\"` ❌ → `data-text=\"▸ text\"` ✅
+     - `<h2>// Title</h2>` ❌ → `<h2>▸ Title</h2>` ✅
+     - Use symbols: » « ∎ ▸ ▪ ◦ • instead of //
+   - **CRITICAL: ESCAPE SPECIAL CHARACTERS** (prevents react/no-unescaped-entities):
+     - Single quotes: `don't` ❌ → `don&apos;t` or `don&#39;t` ✅
+     - Double quotes: `\"text\"` ❌ → `&quot;text&quot;` ✅
+     - Ampersands: `A & B` ❌ → `A &amp; B` ✅
+     - Less than: `< 5` ❌ → `&lt; 5` ✅
+   - Missing commas in arrays/objects cause build failures
 
-1. **REACT IMPORT & JSX SYNTAX**
-   - ✅ MANDATORY: import React from 'react'; (ALWAYS include for JSX)
-   - ✅ MANDATORY: Proper JSX syntax with React components
-   - ✅ Function name must match purpose: HomePage, AboutPage, etc.
-   - ✅ CRITICAL: Template literals must use backticks consistently: className={{`text-white ${{styles.class}}`}}
-   - ❌ NO mixed quotes in template literals: className="text-white ${{styles.class}}" (CAUSES BUILD ERROR)
-   - ❌ NO JSX without React import (causes build errors)
+3. **IMPORT PATHS (BUILD-BREAKING IF WRONG)**
+   - HOME PAGE (is_home_page=True): import './globals.css', dir: ""
+   - NON-HOME PAGE (is_home_page=False): import '../globals.css', dir: '{slug}'
 
-2. **PAGE STRUCTURE & HEADER AVOIDANCE**
-   - 🚫 Forbidden: <header>, <nav>, site title, logo, navigation
-   - 🚫 CRITICAL: NO isolated header-like sections at page start
-   - ✅ Required: <main> with integrated content sections
-   - ✅ PAGE TITLE: h1 WITHIN content sections with surrounding content
-   - ✅ PATTERN: <main><section><div><h1>Title</h1><p>content</p></div></section></main>
+4. **CSS CLASSES**
+   - Standard TailwindCSS: text-gray-900, bg-white, flex, p-4, etc.
+   - Module CSS: styles.className (must be defined in module.css)
+   - FORBIDDEN: text-primary, btn-primary, undefined custom classes
 
-3. **IMPORT PATHS (CRITICAL - CHECK is_home_page: {is_home_page})**
-   - HOME PAGE: import './globals.css', dir: ""
-   - NON-HOME PAGE: import '../globals.css', dir: '{slug}'
+5. **MODULE.CSS SYNTAX (BUILD-BREAKING IF VIOLATED)**
+   - FORBIDDEN: @tailwind directives, :root selector, global selectors
+   - MANDATORY: Every CSS property ends with semicolon (;)
+   - MANDATORY: Proper braces and colons in all CSS rules
 
-4. **CSS CLASSES & TEMPLATE LITERALS (BUILD-SAFE ONLY)**
-   - ✅ Standard TailwindCSS: text-gray-*, bg-white, flex, p-4, etc.
-   - ✅ Module CSS: styles.className (must be defined in module.css)
-   - ✅ Template literals: className={{`tailwind-class ${{styles.moduleClass}}`}} (BACKTICKS ONLY)
-   - 🚫 Forbidden: text-primary-*, btn-primary, undefined custom classes
-   - 🚫 CRITICAL: Mixed quotes in template literals (causes JSX syntax errors)
+6. **SERVER COMPONENT CONSTRAINTS**
+   - No 'use client', onClick handlers, or React hooks
+   - No external packages (@heroicons/react, react-icons, etc.)
+   - Local images only (/public/xxx.png)
+
+**CHARACTER ESCAPE ALTERNATIVES (PREVENT BUILD ERRORS):**
+- Use descriptive variable names: `const heroTitle = "Welcome"`
+- Use aria-label for accessibility: `<button aria-label="Submit form">Submit</button>`  
+- Use data attributes for debugging: `<div data-section="hero">`
+- Use alternative symbols: » « ∎ ▸ ▪ ◦ • instead of // in text
+- **HTML entities reference:**
+  - `&apos;` or `&#39;` for single quotes (')
+  - `&quot;` or `&#34;` for double quotes (")
+  - `&amp;` or `&#38;` for ampersands (&)
+  - `&lt;` or `&#60;` for less than (<)
+  - `&gt;` or `&#62;` for greater than (>)
 
 **OUTPUT FORMAT:**
-Output EXACTLY TWO separate JSON objects in ```json code blocks (CRITICAL FOR PARSING):
+Output EXACTLY TWO JSON objects in separate ```json code blocks:
 
 ```json
 {{"name": "page.tsx", "dir": "{slug}", "file_type": "page", "code": "...", "meta": {{}}, "required_libs": []}}
@@ -429,121 +432,110 @@ Output EXACTLY TWO separate JSON objects in ```json code blocks (CRITICAL FOR PA
 {{"name": "{slug}.module.css", "dir": "{slug}", "file_type": "css", "code": "...", "meta": {{}}, "required_libs": []}}
 ```
 
-**CRITICAL FORMATTING RULES:**
-- Each JSON object MUST be wrapped in separate ```json code blocks
-- Output exactly 2 code blocks: one for page.tsx, one for module.css
-- No additional text between the code blocks
-- For home page: use "home.module.css" as the CSS filename, dir should be ""
-- For non-home pages: use "{slug}.module.css" as the CSS filename
+**FORMATTING RULES:**
+- For home page: dir="", filename="home.module.css"
+- For non-home pages: dir="{slug}", filename="{slug}.module.css"
+- Each JSON object in separate code blocks
+- No additional text between code blocks
 
-**ADDITIONAL RULES:**
-- Server Component only (no 'use client', no onClick events)  
-- No external packages (@heroicons/react, react-icons, etc.)
-- No :root in module.css
-- Local images only (/public/xxx.png)
-- Japanese content preferred
-- Module CSS classes must be defined before use
-- **CRITICAL HEADER AVOIDANCE:** Page h1 must be WITHIN content sections with surrounding content, not isolated as header-like elements
-- **PAGE STRUCTURE:** Always start with content-rich sections, never with standalone title/intro sections that resemble headers
+**EXAMPLES:**
 
-**EXAMPLE:**
-HOME PAGE (is_home_page=True):
+HOME PAGE:
 ```json
 {{"name": "page.tsx", "dir": "", "file_type": "page", "code": "import React from 'react';\\nimport './globals.css';\\nimport styles from './home.module.css';\\n\\nexport default function HomePage() {{\\n  return (\\n    <main>\\n      <section className=\\"py-16\\">\\n        <div className=\\"max-w-7xl mx-auto px-6\\">\\n          <h1 className=\\"text-3xl font-bold text-gray-900\\">ホーム</h1>\\n          <p className=\\"mt-4 text-lg text-gray-600\\">ページコンテンツ</p>\\n        </div>\\n      </section>\\n    </main>\\n  );\\n}}", "meta": {{}}, "required_libs": []}}
 ```
 
-```json
-{{"name": "home.module.css", "dir": "", "file_type": "css", "code": ".container {{ padding: 2rem; }}", "meta": {{}}, "required_libs": []}}
-```
-
-NON-HOME PAGE (is_home_page=False):  
+NON-HOME PAGE:
 ```json
 {{"name": "page.tsx", "dir": "about", "file_type": "page", "code": "import React from 'react';\\nimport '../globals.css';\\nimport styles from './about.module.css';\\n\\nexport default function AboutPage() {{\\n  return (\\n    <main>\\n      <section className=\\"py-16\\">\\n        <div className=\\"max-w-7xl mx-auto px-6\\">\\n          <h1 className=\\"text-3xl font-bold text-gray-900\\">会社概要</h1>\\n          <p className=\\"mt-4 text-lg text-gray-600\\">私たちの会社について</p>\\n        </div>\\n      </section>\\n    </main>\\n  );\\n}}", "meta": {{}}, "required_libs": ["react"]}}
 ```
 
-```json
-{{"name": "about.module.css", "dir": "about", "file_type": "css", "code": ".container {{ padding: 2rem; margin: 1rem; background-color: white; }}", "meta": {{}}, "required_libs": []}}
-```
-
-**🚨 CSS SYNTAX EXAMPLES (CRITICAL - PREVENT BUILD ERRORS):**
+**CSS SYNTAX (MANDATORY):**
 ```css
-/* ✅ CORRECT: All properties end with semicolons */
+/* CORRECT: All properties end with semicolons */
 .hero {{ 
   background-color: #f8fafc;
-  padding: 2rem; 
-  margin-bottom: 1rem;
+  padding: 2rem;
   border-radius: 8px;
 }}
 
-.button {{ 
-  background: blue; 
-  color: white; 
-  padding: 1rem 2rem;
-}}
-
-/* ❌ FORBIDDEN: Missing semicolons (PostCSS ERROR) */
-.bad-example {{ 
+/* FORBIDDEN: Missing semicolons (causes build failure) */
+.broken {{ 
   background-color: #f8fafc
   padding: 2rem
-  margin-bottom: 1rem
 }}
 ```
 """
 
 # Individual Page Revision (review feedback修正用) プロンプト
 DEVELOP_PAGE_REVISION_PROMPT = """
-You are an expert Next.js developer and senior code reviewer specializing in debugging, fixing production issues, and ensuring code quality. Your expertise includes identifying and resolving JSX syntax errors, CSS class conflicts, import path issues, and component architecture problems in React Server Components.
+You are an expert Next.js developer and senior code reviewer specializing in Next.js 13+ Server Components. Your task is to fix ALL issues identified in review feedback to generate production-ready code.
 
-🚨 CRITICAL REVISION: Fix ALL issues in review feedback to generate perfect Next.js 13+ Server Component.
-🚫 NO <header>, <nav> - inherited from layout.tsx.
-✅ MANDATORY: import React from 'react'; (ALWAYS include for JSX syntax)
-✅ START with <main> containing integrated content sections.
+## CRITICAL REQUIREMENTS
 
-**IMPORT PATHS (CHECK is_home_page: {is_home_page})**
-- HOME PAGE: import './globals.css', dir: ""
-- NON-HOME PAGE: import '../globals.css', dir: '{slug}'
+### 1. JSX Syntax
+- **MANDATORY**: `import React from 'react';` at the top of every file
+- **Template literals**: Use backticks consistently: `className={{`class ${{styles.module}}`}}`
+- **Comments in JSX**: Use `{{/* comment */}}` syntax only (ABSOLUTELY FORBIDDEN: HTML comments `<!-- -->` in JSX)
+- **Comments inside JSX children MUST be wrapped in braces**: `{{/* comment */}}`
+- **CRITICAL: AVOID // IN STRINGS** (triggers react/jsx-no-comment-textnodes):
+  - `data-text=\"//text\"` ❌ → `data-text=\"▸ text\"` or `data-text=\"» text\"` ✅
+  - `<h2>// Title</h2>` ❌ → `<h2>▸ Title</h2>` ✅
+  - Use alternative symbols: » « ∎ ▸ ▪ ◦ • instead of //
+- **CRITICAL: ESCAPE SPECIAL CHARACTERS** (prevents react/no-unescaped-entities):
+  - Single quotes: `don't` ❌ → `don&apos;t` or `don&#39;t` ✅
+  - Double quotes: `\"quote\"` ❌ → `&quot;quote&quot;` ✅
+  - Ampersands: `A & B` ❌ → `A &amp; B` ✅
+  - Less than: `< 5` ❌ → `&lt; 5` ✅
+- **ZERO TOLERANCE**: Any unescaped entities or // in strings = immediate build failure
+- **Alternative**: Use descriptive variable names instead of comments when possible
 
-**REVIEW FEEDBACK TO FIX:**
-{review_feedback}
+### 2. Import Paths
+- **HOME PAGE** (is_home_page: {is_home_page}):
+  - Import: `import './globals.css'`
+  - Directory: `""`
+- **NON-HOME PAGE**:
+  - Import: `import '../globals.css'`
+  - Directory: `'{slug}'`
 
-**🚨 CRITICAL FIXES REQUIRED:**
+### 3. Component Structure
+- **PROHIBITED**: No `<header>`, `<nav>`, or navigation elements (inherited from layout.tsx)
+- **REQUIRED**: Start with `<main>` tag containing integrated content sections
+- **Server Component only**: No 'use client', no onClick events
 
-1. **FIX JSX SYNTAX** - ALWAYS include import React from 'react'; at the top
-   - CRITICAL: Fix template literal syntax - use backticks consistently: className={{`class ${{styles.module}}`}}
-2. **FIX HEADER VIOLATIONS** - Remove ALL <header>, <nav>, navigation elements
-3. **FIX CSS CLASSES** - Replace undefined classes with standard TailwindCSS
-4. **FIX MODULE CSS** - Define ALL styles.className in module.css
-5. **FIX IMPORTS** - Use correct globals.css path based on page location
-6. **FIX STRUCTURE** - Ensure proper JSX syntax and component structure
-7. **🚨 FIX CSS SYNTAX ERRORS** - MANDATORY semicolon validation
-   - Every CSS property MUST end with semicolon (`;`)
-   - Every CSS rule MUST have opening and closing braces
-   - Check for missing colons, spaces, and proper syntax
-   - ZERO TOLERANCE for PostCSS syntax errors
+### 4. CSS Classes
+**Forbidden → Replacement:**
+- `text-primary-*`, `btn-primary` → `text-blue-600`, `bg-blue-500`
+- `text-secondary-*`, `bg-secondary-*` → `text-gray-600`, `bg-gray-500`
+- `text-accent-*`, `bg-accent-*` → `text-green-500`, `bg-green-500`
+- Custom undefined classes → Standard TailwindCSS or `styles.className`
 
-**CSS CLASS REPLACEMENTS:**
-- ❌ text-primary-*, btn-primary → ✅ text-blue-600, bg-blue-500
-- ❌ text-secondary-*, bg-secondary-* → ✅ text-gray-600, bg-gray-500  
-- ❌ text-accent-*, bg-accent-* → ✅ text-green-500, bg-green-500
-- ❌ Custom undefined classes → ✅ Standard TailwindCSS or styles.className
-- ✅ Approved: text-gray-*, text-blue-*, flex, p-4, etc.
+**Approved**: Standard TailwindCSS classes (text-gray-*, text-blue-*, flex, p-4, etc.)
 
-**CONTEXT:**
-- Design: {overall_design}
-- Layout: {layout_code}  
-- CSS: {globals_css}
-- Page Spec: {page_spec}
-- SiteMap: {sitemap}
+### 5. Module CSS Rules
+- Define ALL `styles.className` in module.css before use
+- **PROHIBITED in module.css**:
+  - `@tailwind` directives
+  - `:root` selector
+  - Global selectors (`*`, `::before`, `::after`)
+- **REQUIRED**: Every CSS property MUST end with semicolon (`;`)
 
-**APPLY SAME JSX REQUIREMENTS AS DEVELOP_PAGE_PROMPT:**
-1. ✅ MANDATORY: import React from 'react'; (ALWAYS include for JSX)
-   - ✅ CRITICAL: Template literals must use backticks: className={{`text-white ${{styles.class}}`}}
-2. 🚫 NO header elements (<header>, <nav> prohibited)
-3. ✅ CSS classes (standard TailwindCSS + module CSS only)
-4. 🚨 Import paths (HOME: './globals.css', NON-HOME: '../globals.css')
-5. 🚫 Forbidden classes (text-primary, btn-primary, custom undefined)
+### 6. Content Guidelines
+- No external packages (@heroicons/react, react-icons, etc.)
+- Local images only (/public/xxx.png)
+- Japanese content preferred
+- h1 elements must be within content sections, not isolated
 
-**OUTPUT:** Two separate JSON objects in ```json code blocks:
+## INPUT CONTEXT
+- **Review Feedback**: {review_feedback}
+- **Design**: {overall_design}
+- **Layout**: {layout_code}
+- **CSS**: {globals_css}
+- **Page Spec**: {page_spec}
+- **SiteMap**: {sitemap}
+
+## OUTPUT FORMAT
+Generate two separate JSON objects in ```json code blocks:
 
 ```json
 {{"name": "page.tsx", "dir": "{slug}", "file_type": "page", "code": "...", "meta": {{}}, "required_libs": []}}
@@ -552,20 +544,7 @@ You are an expert Next.js developer and senior code reviewer specializing in deb
 ```json
 {{"name": "{slug}.module.css", "dir": "{slug}", "file_type": "css", "code": "...", "meta": {{}}, "required_libs": []}}
 ```
-
-**ADDITIONAL RULES:**
-- Server Component only (no 'use client', no onClick events)  
-- No external packages (@heroicons/react, react-icons, etc.)
-- **🚨 CRITICAL: No @tailwind directives in module.css (causes build errors)**
-- **🚨 CRITICAL: No :root selector in module.css (only allowed in globals.css)**
-- **🚨 CRITICAL: No global selectors (*, ::before, ::after) in module.css**
-- Local images only (/public/xxx.png)
-- Japanese content preferred
-- Module CSS classes must be defined before use
-- **CRITICAL HEADER AVOIDANCE:** Page h1 must be WITHIN content sections with surrounding content, not isolated as header-like elements
-- **PAGE STRUCTURE:** Always start with content-rich sections, never with standalone title/intro sections that resemble headers
 """
-
 
 # Layout Files (layout.tsx + globals.css) 専用レビュープロンプト
 LAYOUT_REVIEW_PROMPT = """
@@ -652,56 +631,36 @@ You are a world-class Next.js reviewer specializing in layout files (layout.tsx 
 
 # Individual Pageレビュープロンプト
 DEVELOP_PAGE_REVIEW_PROMPT = """
-You are a Next.js expert reviewing individual page files (page.tsx + module.css) for Next.js 13+ Server Components.
+You are a Next.js expert reviewing page.tsx and module.css files for Next.js 13+ Server Components. Score below 80 for any critical failure.
 
-**CRITICAL FAILURES (AUTOMATIC SCORE < 80):**
+**CRITICAL FAILURES (SCORE < 80):**
 
-1. **LAYOUT INHERITANCE VIOLATIONS:**
-   - Including <header>, <nav>, or navigation elements (duplicates layout.tsx)
-   - Must start with <main> or content sections only
+0. **JSX SYNTAX VIOLATIONS (AUTOMATIC FAILURE)**: 
+   - ANY HTML comment <!-- --> in JSX (causes react/jsx-no-comment-textnodes)
+   - ANY // inside strings: `data-text="//text"` or `<h2>// Title</h2>` ❌
+   - Unescaped entities: `don't`, `"quote"`, `A & B` ❌ (causes react/no-unescaped-entities)
+   - Comments not wrapped in braces within JSX children
+   - EXAMPLES: 
+     - <div><!-- comment --></div> ❌ | <div>{{/* comment */}}</div> ✅
+     - data-text="//text" ❌ | data-text="▸ text" ✅
+     - <p>don't</p> ❌ | <p>don&apos;t</p> ✅
+     - <span>A & B</span> ❌ | <span>A &amp; B</span> ✅
 
-2. **IMPORT PATH ERRORS (BUILD-BREAKING):**
-   - is_home_page={is_home_page} determines correct path:
-   - HOME PAGE (True): import './globals.css' ✅ | import '../globals.css' ❌  
-   - NON-HOME PAGE (False): import '../globals.css' ✅ | import './globals.css' ❌
-
-3. **🚨 JSX/JAVASCRIPT SYNTAX ERRORS (CRITICAL - AUTOMATIC SCORE < 80):**
-   - **Missing commas in arrays**: `[{{prop: 'val'}} {{prop: 'val'}}]` ❌ (Expected ',', got '{{')
-   - **Missing commas in objects**: `{{a: 1 b: 2}}` ❌ (Missing comma between properties)
-   - **Incomplete JSX expressions**: `{{incomplete expression` ❌ (Missing closing brace)
-   - **Invalid JSX attributes**: `className=missing-quotes` ❌ (Must be quoted)
-   - **Missing semicolons**: `const data = []` followed by `{{` ❌ (Missing semicolon)
-   - **Malformed template literals**: Mixed quotes in className templates
-   - **ZERO TOLERANCE:** Any JavaScript/JSX syntax error causes build failure
-
-4. **TAILWINDCSS CLASS ERRORS:**
-   - Undefined custom classes: text-primary, bg-light-gray, hover:text-accent-green-dark, etc.
-   - Classes must be: standard TailwindCSS, globals.css-defined, or styles.className
-
-5. **MODULE.CSS BUILD ERRORS:**
-   - @tailwind directives: @tailwind base/components/utilities ❌ (causes "Selector is not pure")
-   - Global selectors: *, ::before, ::after ❌ (causes "Selector is not pure")  
-   - :root selector ❌ (only allowed in globals.css)
-   - Only pure local classes allowed: .className {{ properties }}
-
-6. **🚨 CSS SYNTAX ERRORS (CRITICAL - AUTOMATIC SCORE < 80):**
+1. **LAYOUT VIOLATIONS**: <header>, <nav>, navigation elements (duplicates layout.tsx)
+2. **IMPORT PATH ERRORS**: 
+   - HOME PAGE: import './globals.css' ✅ | import '../globals.css' ❌
+   - NON-HOME PAGE: import '../globals.css' ✅ | import './globals.css' ❌
+3. **JSX/JS SYNTAX ERRORS**: 
+   - Missing commas: `[{{a: 1}} {{b: 2}}]` ❌ (Expected ',', got '{{')
+   - Use alternative symbols: » « ∎ ▸ ▪ ◦ • instead of // in text content
+   - Missing semicolons, braces, malformed expressions
+4. **CSS SYNTAX ERRORS**: 
    - Missing semicolons: `.class {{ color: red background: blue }}` ❌ (PostCSS error)
-   - Missing colons: `.class {{ color red; }}` ❌ (invalid syntax)
-   - Missing braces: `.class color: red;` ❌ (invalid syntax)
-   - Incomplete properties: `.class {{ color: }}` ❌ (empty value)
-   - **ZERO TOLERANCE:** Any CSS syntax error causes build failure
-
-7. **SERVER COMPONENT VIOLATIONS:**
-   - 'use client' directive, event handlers (onClick), hooks (useState), browser APIs
-   - External packages: @heroicons/react, react-icons, lucide-react, @mui/material ❌
-   - Only allowed: React, next/link, next/image, local CSS imports
-
-8. **EXTERNAL RESOURCES:**
-   - External image URLs (https://...) ❌ | Local images (/images/...) ✅
-
-9. **LANGUAGE VALIDATION:**
-   - Predominantly English content that feels unnatural for Japanese websites
-   - Natural mixed Japanese-English usage is acceptable and encouraged
+   - Missing colons, braces in CSS properties
+5. **TAILWIND ERRORS**: Undefined classes (text-primary, bg-light-gray, etc.)
+6. **MODULE.CSS ERRORS**: @tailwind directives, :root selector, global selectors
+7. **SERVER COMPONENT VIOLATIONS**: 'use client', event handlers, external packages
+8. **EXTERNAL RESOURCES**: External URLs instead of local images
 
 **VALIDATION CONTEXT:**
 - overall_design: {overall_design}
@@ -718,55 +677,8 @@ page.tsx:
 module.css:
 {module_css_code}
 
-**SCORING:**
-- Score < 80: Any critical failure above
-- Score ≥ 80: All validations pass
-- passed = (score ≥ 80)
-
 **OUTPUT:** {{"score": int, "feedback": str, "passed": bool}}
-Feedback must specify any found issues: **JavaScript/JSX syntax errors (missing commas in arrays/objects, incomplete expressions)**, undefined classes, header duplication, @tailwind/global selectors in module.css, wrong import paths, external packages, **CSS syntax errors (missing semicolons, colons, braces)**, etc.
-
-**🚨 JSX/JAVASCRIPT SYNTAX VALIDATION EXAMPLES:**
-```javascript
-/* ✅ CORRECT: Proper comma placement in arrays */
-const treatments = [
-  {{ title: 'Eye Care', description: 'Professional care' }},
-  {{ title: 'Vision Tests', description: 'Comprehensive tests' }},
-];
-
-/* ❌ FORBIDDEN: Missing commas in arrays (Expected ',', got '{{') */
-const broken = [
-  {{ title: 'Eye Care', description: 'Professional care' }}
-  {{ title: 'Vision Tests', description: 'Comprehensive tests' }}
-];
-
-/* ❌ FORBIDDEN: Missing commas in objects */
-const invalid = {{ title: 'Care' description: 'Text' }};
-```
-
-**🚨 CSS SYNTAX VALIDATION EXAMPLES:**
-```css
-/* ✅ CORRECT: Valid CSS syntax */
-.hero {{ 
-  background-color: #f8fafc;
-  padding: 2rem; 
-  margin-bottom: 1rem;
-}}
-
-/* ❌ FORBIDDEN: Missing semicolons (PostCSS build error) */
-.broken {{ 
-  background-color: #f8fafc
-  padding: 2rem
-  margin-bottom: 1rem
-}}
-
-/* ❌ FORBIDDEN: Missing colons */
-.invalid {{ 
-  background-color #f8fafc;
-  padding 2rem;
-}}
-```
+- Score ≥ 80: passed = true
+- Score < 80: passed = false
+- Feedback must specify exact issues found
 """ 
-
-
-
