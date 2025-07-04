@@ -132,8 +132,6 @@ def robust_json_parser(content: str, required_fields: list = None, specific_patt
                     else:
                         return parsed
         except (json.JSONDecodeError, ValueError) as e:
-            # より詳細なデバッグログ
-            logger.debug(f"[robust_json_parser] JSON parse failed: {e}, candidate length: {len(candidate)}, starts with: {candidate[:100]}...")
             continue
     
     # 結果を返す
@@ -176,8 +174,7 @@ def generate_layout(overall_design: str, sitemap: list = None, project_name: str
             overall_design=overall_design,
             sitemap=sitemap
         )
-    logger.info(f"[generate_layout] Start generate layout")
-    logger.debug(f"[generate_layout] LLM prompt: {prompt}")
+    logger.info(f"[PageDev] Generating layout")
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-pro", 
         temperature=0.2, 
@@ -186,17 +183,12 @@ def generate_layout(overall_design: str, sitemap: list = None, project_name: str
     )
     response = llm.invoke(prompt)
     
-    # デバッグ: レスポンス内容をログ出力
-    logger.debug(f"[generate_layout] LLM response content: {response.content}")
-    logger.info(f"[generate_layout] LLM response length: {len(response.content)} characters")
-    
     # JSON抽出の改善
     patterns = [
         r'\{\s*"name"\s*:\s*"layout\\.tsx"[\s\S]*?"file_type"\s*:\s*"layout"[\s\S]*?\}',
         r'\{\s*"name"\s*:\s*"globals\\.css"[\s\S]*?"file_type"\s*:\s*"css"[\s\S]*?\}'
     ]
     parsed_objects = robust_json_parser(response.content, required_fields=['name', 'file_type', 'code'], specific_patterns=patterns, extract_multiple=True)
-    logger.debug(f"[generate_layout] Parsed objects count: {len(parsed_objects) if parsed_objects else 0}")
     layout_obj, css_obj = None, None
     for obj in parsed_objects:
         if obj.get('file_type') == 'layout' and obj.get('name') == 'layout.tsx':
@@ -205,31 +197,22 @@ def generate_layout(overall_design: str, sitemap: list = None, project_name: str
             css_obj = obj
     # フォールバック: レガシー方式（共通化関数でカバーできない場合）
     if not layout_obj or not css_obj:
-        logger.warning(f"[generate_layout] Primary parsing failed. layout_obj: {layout_obj is not None}, css_obj: {css_obj is not None}")
+        logger.debug(f"[generate_layout] Primary parsing failed, trying fallback")
         matches = re.findall(r'\{.*?\}(?=\s*\{|$)', response.content, re.DOTALL)
-        logger.debug(f"[generate_layout] Fallback regex found {len(matches)} JSON candidates")
         for i, match in enumerate(matches):
             try:
                 obj = json.loads(match)
-                logger.debug(f"[generate_layout] Fallback candidate {i}: file_type={obj.get('file_type')}, name={obj.get('name')}")
                 if obj.get('file_type') == 'layout' and layout_obj is None:
                     layout_obj = obj
-                    logger.info(f"[generate_layout] Found layout object via fallback")
                 elif obj.get('file_type') == 'css' and obj.get('name') == 'globals.css' and css_obj is None:
                     css_obj = obj
-                    logger.info(f"[generate_layout] Found css object via fallback")
             except Exception as e:
-                logger.debug(f"[generate_layout] JSON parse failed: {e}, content: {match[:100]}...")
+                logger.debug(f"[generate_layout] JSON parse failed: {e}")
     if layout_obj and css_obj:
-        logger.info("[generate_layout] Layout content generation completed - review and file writing will be handled by quality control")
+        logger.info("[generate_layout] Layout generation completed")
         return {"layout": layout_obj, "globals_css": css_obj}
     else:
-        logger.error(f"[generate_layout] Failed to extract required objects. layout_obj: {layout_obj is not None}, css_obj: {css_obj is not None}")
-        if layout_obj:
-            logger.debug(f"[generate_layout] Layout object found: name={layout_obj.get('name')}, file_type={layout_obj.get('file_type')}")
-        if css_obj:
-            logger.debug(f"[generate_layout] CSS object found: name={css_obj.get('name')}, file_type={css_obj.get('file_type')}")
-        logger.info("[generate_layout] layout content generation failed")
+        logger.error(f"[generate_layout] Failed to extract layout objects")
         return {"layout": layout_obj, "globals_css": css_obj, "error": "layout or css generation failed"}
 
 
@@ -275,7 +258,7 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
                    slug.lower() in ['', 'home', 'index'] or 
                    path == '/')
 
-    logger.info(f"[develop_page] page_name: {page_name}, slug: {slug}, is_home_page: {is_home_page}")
+    logger.info(f"[develop_page] Generating page '{page_name}'")
     layout_code = LayoutCache.get() or ""
 
     if not review_feedback:
@@ -303,8 +286,6 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
             is_home_page=is_home_page
         )
 
-    logger.debug(f"[develop_page] LLM prompt: {prompt}")
-    
     # 1回だけAPIコール
     try:
         llm = ChatGoogleGenerativeAI(
@@ -314,7 +295,6 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
             timeout=180  # 3分タイムアウト
         )
         response = llm.invoke(prompt)
-        logger.info(f"[develop_page] Successfully called Gemini API for {page_name}")
     except (ResourceExhausted, TooManyRequests) as e:
         logger.warning(f"[develop_page] Rate limit hit for {page_name}: {e}")
         return {"error": f"Gemini API rate limit exceeded: {str(e)}", "page": None, "module_css": None, "is_home_page": is_home_page}
@@ -340,7 +320,6 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
                 
         if page_obj and css_obj:
             # レビュー実行
-            logger.info(f"[develop_page] Starting page review for {page_name}")
             review_result = review_develop_page(
                 page_obj['code'], 
                 css_obj['code'], 
@@ -351,11 +330,7 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
                     'is_home_page': is_home_page
                 }
             )
-            logger.info(f"[develop_page] Page generation complete with review score: {review_result.get('score', 0)}")
-            
-            # ファイル書き込み処理は develop_page_with_quality_control で実行
-            # develop_page はコンテンツ生成とレビューのみに専念
-            logger.info(f"[develop_page] Content generation and review completed for {page_name} - file writing will be handled by quality control")
+            logger.info(f"[develop_page] Page '{page_name}' completed (score: {review_result.get('score', 0)})")
             
             return {
                 "page": page_obj, 
@@ -364,8 +339,7 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
                 "is_home_page": is_home_page
             }
             
-        logger.info(f"[develop_page] JSONパース失敗: page_obj={page_obj}, css_obj={css_obj}, response={response.content}")
-        logger.debug(f"[develop_page] JSONパース失敗: page_obj={page_obj}, css_obj={css_obj}, response={response.content}")
+        logger.error(f"[develop_page] JSON parsing failed for {page_name}")
         return {
             "error": "Failed to generate both page.tsx and module.css", 
             "page": page_obj, 
@@ -374,8 +348,7 @@ def develop_page(overall_design: str, page_spec: dict, sitemap: list, globals_cs
             "is_home_page": is_home_page
         }
     except Exception as e:
-        logger.info(f"[develop_page] JSON抽出・パースで例外発生: {e}, response={getattr(response, 'content', '')}")
-        logger.debug(f"[develop_page] JSON抽出・パースで例外発生: {e}, response={getattr(response, 'content', '')}")
+        logger.error(f"[develop_page] JSON parsing exception for {page_name}: {e}")
         return {
             "error": f"JSON抽出・パースで例外発生: {e}", 
             "page": None, 
