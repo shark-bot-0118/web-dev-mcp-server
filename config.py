@@ -19,8 +19,11 @@ class Config:
         'ErrorDocument': {'Key': 'error.html'}
     }
     
-    # 
+    # ページ生成処理の並列実行数
     MAX_CONCURRENCY = int(os.getenv("MAX_CONCURRENCY", "3"))
+
+    # ページ生成処理の最大試行回数
+    MAX_ATTEMPTS = int(os.getenv("MAX_ATTEMPTS", "3"))
 
     # S3 Bucket Policy Template (セキュアなパブリック読み取り専用)
     @staticmethod
