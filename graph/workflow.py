@@ -60,7 +60,7 @@ def run_workflow(user_instruction: str) -> dict:
         }
 
     # 4. 必要なnpmパッケージをまとめてインストール
-    # プロジェクトルートからの絶対パスを構築
+    # プロジェクトパスの構築
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     output_dir_path = os.path.join(project_root, Config.OUTPUT_DIR)
     project_path = os.path.join(output_dir_path, project_name)
