@@ -11,6 +11,8 @@ class Logger:
         log_path = os.path.join(log_dir, log_file)
 
         self.logger = logging.getLogger(name)
+        self.log_level = log_level.upper()  # log_level属性を追加
+        
         if not self.logger.hasHandlers():
             level = getattr(logging, log_level.upper(), logging.INFO)
             self.logger.setLevel(level)
